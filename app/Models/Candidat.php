@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Candidat extends Model
 {
@@ -22,8 +22,8 @@ class Candidat extends Model
         return $this->belongsTo(Offre::class);
     }
 
-    public function analyse(): HasOne
+    public function analyses(): HasMany
     {
-        return $this->hasOne(Analyse::class);
+        return $this->hasMany(Analyse::class);
     }
 }
