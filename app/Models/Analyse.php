@@ -6,7 +6,6 @@ use App\Enums\Recommandation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Analyse extends Model
 {
@@ -48,10 +47,5 @@ class Analyse extends Model
     public function candidat(): BelongsTo
     {
         return $this->belongsTo(Candidat::class);
-    }
-
-    public function messages(): HasMany
-    {
-        return $this->hasMany(Message::class);
     }
 }

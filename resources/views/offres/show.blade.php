@@ -108,7 +108,9 @@
                                     @foreach ($offre->analyses as $analyse)
                                         <tr>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {{ $analyse->candidat?->nom_candidat }}
+                                                <a href="{{ route('analyses.show', $analyse) }}" class="text-indigo-600 hover:text-indigo-900 hover:underline">
+                                                    {{ $analyse->candidat?->nom_candidat }}
+                                                </a>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 @php

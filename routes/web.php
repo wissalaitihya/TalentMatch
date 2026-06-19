@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AnalyseController;
 use App\Http\Controllers\CandidatController;
 use App\Http\Controllers\OffreController;
 use App\Http\Controllers\ProfileController;
@@ -27,6 +28,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/offres/{offre}', [OffreController::class, 'destroy'])->name('offres.destroy');
 
     Route::post('/offres/{offre}/candidats', [CandidatController::class, 'store'])->name('offres.candidats.store');
+
+    Route::get('/analyses/{analyse}', [AnalyseController::class, 'show'])->name('analyses.show');
+    Route::post('/analyses/{analyse}/chat', [AnalyseController::class, 'chat'])->name('analyses.chat');
 });
 
 require __DIR__.'/auth.php';
