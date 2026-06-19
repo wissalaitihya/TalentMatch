@@ -34,6 +34,14 @@ class CompareCandidates implements Tool
             return 'Comparaison impossible : vous n\'avez pas accès à l\'un des candidats.';
         }
 
+        if ($analyse1->offre_id !== $analyse2->offre_id) {
+            return 'Comparaison impossible : les candidats doivent appartenir à la même offre.';
+        }
+
+        if ($analyse1->statut_analyse !== 'completed' || $analyse2->statut_analyse !== 'completed') {
+            return 'Comparaison impossible : les deux analyses doivent être terminées.';
+        }
+
         $formatAnalyse = function (Analyse $a) {
             $nom = $a->candidat?->nom_candidat ?? 'Inconnu';
             $score = $a->matching_score !== null ? $a->matching_score.'%' : 'N/D';
