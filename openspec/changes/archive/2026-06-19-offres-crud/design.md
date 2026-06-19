@@ -1,31 +1,41 @@
 ## Context
 
-TalentMatch gère des offres d'emploi via l'IA conversationnelle, mais n'a pas encore de CRUD standard pour les agents RH. Le modèle `Offre` sera le pivot entre les agents RH et l'analyse CV. Actuellement, aucune table `offres` n'existe.
+TalentMatch has Breeze authentication installed. Users (RH agents) exist via the default Laravel migration. There is no model or migration yet for job offers. The validated MCD/MLD defines `offres` as a table owned by `users` with fields for title, description, JSON required skills, and minimum experience level. This design covers only the offer management layer — candidate and analysis features come later.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Modèle `Offre` avec migration, factory, seeder
-- 5 endpoints REST authentifiés (GET/POST/PUT/DELETE)
-- Scoping automatique par `user_id` (auth()->id())
-- `withCount('candidatures')` sur l'index pour éviter N+1
-- FormRequests dédiés avec validation des compétences
+- Create `Offre` Eloquent model with `offres` migration
+- Add `hasMany`/`belongsTo` relationship between User and Offre
+- Implement full CRUD via Blade views with Form Request validation
+- Scope all offer access to the owning user (return 404 for non-owned offers)
+- Store `competences_requises` as JSON array using Eloquent `array` cast
+- Add `withCount('candidats')` for candidate counts (placeholder until later feature)
+- Cover all routes with Pest feature tests
 
 **Non-Goals:**
-- Scoring IA (couche séparée)
-- Pagination (hors scope)
-- Tags / catégories
-- Publication publique
+- Candidate submission or management
+- AI analysis or queue jobs
+- Conversational assistant
+- Pagination (offers list is small at this stage)
+- Public/unauthenticated access to offers
 
 ## Decisions
 
-1. **Controller unique vs séparé** → `OffreController` unique avec 5 méthodes (pas de API Resource, car l'UI est interne et blade-first). Rationale : pas assez complexe pour justifier un contrôleur API.
-2. **FormRequest unique par action** → `StoreOffreRequest` et `UpdateOffreRequest` distincts. `UpdateOffreRequest` vérifie que l'offre appartient à l'utilisateur connecté via `authorize()`.
-3. **Competences_requises cast array** → cast natif Laravel `array` sur le modèle. Stockage JSON en MySQL.
-4. **Routes web** (pas api.php) → l'outil est interne, pas d'API publique. Middleware `auth` appliqué via route group.
+1. **Ownership check via FormRequest `authorize()` instead of Policy**: A Policy is overkill for a single model at this stage. `StoreOffreRequest` sets `user_id` from `auth()->id()`. `UpdateOffreRequest::authorize()` checks `$this->offre->user_id === auth()->id()` and returns 404 on failure (avoids leaking offer existence to unauthorized users). This can be extracted to a Policy later if needed.
+
+2. **404 instead of 403 for unauthorized access**: Returning 404 prevents an attacker from discovering which offer IDs belong to other users. This follows the "don't reveal existence" security principle.
+
+3. **Textarea for required skills input**: The create/edit form uses a textarea where the user enters skills separated by newlines or commas. `StoreOffreRequest::prepareForValidation()` splits and trims the input into an array. This keeps the UX simple without needing a JS tag input library.
+
+4. **`candidats` relationship name**: Uses the existing convention from the validated MCD — `offre hasMany candidats`. The `withCount('candidats')` call will return 0 until the candidates feature is implemented.
+
+5. **No service class for this feature**: CRUD logic is thin enough to live in the controller. Business logic (e.g., AI analysis) will be extracted to Services/Jobs in later features.
+
+6. **Named routes with `offres.` prefix**: Following Laravel resource route naming conventions for clarity and consistency with `route()` helper usage.
 
 ## Risks / Trade-offs
 
-- Cast array = pas de validation au niveau DB (mais le FormRequest valide avant). Mitigation : validation stricte dans le FormRequest (min:1 item, array).
-- Pas de soft deletes → suppression physique simple. Si besoin futur, migration additionnelle.
-- Routes web sans inertia → utilisation de `@if(session)` pour flash messages. Acceptable pour un outil interne.
+- [Textarea-to-array transform] → The `prepareForValidation` logic must handle both string (form POST) and array (API/test) input gracefully. Tests will verify both paths.
+- [No pagination] → If an RH agent creates hundreds of offers, the list page will be slow. Pagination should be added before the feature ships to production.
+- [No soft deletes] → `destroy()` performs a hard delete. If accidental deletion is a concern, soft deletes can be added later without breaking changes.

@@ -1,29 +1,32 @@
 ## Why
 
-Les agents RH ont besoin de gérer leurs offres d'emploi directement dans TalentMatch — créer, lister, voir, modifier et supprimer des offres. Actuellement, le système n'a pas de module de gestion d'offres, ce qui bloque le flux de recrutement AI (l'analyse CV et le scoring ont besoin d'offres pour fonctionner).
+TalentMatch needs a foundation for job offer management before candidates and AI analysis can be introduced. RH agents must be able to create, view, update, and delete job offers with required skills and minimum experience. Without this, candidates have no offers to be analyzed against.
 
 ## What Changes
 
-- **Nouveau modèle `Offre`** avec titre, description, competences_requises, experience_minimum, user_id
-- **CRUD complet** via 5 routes REST authentifiées (`GET/POST/PUT/DELETE /offres`)
-- **StoreOffreRequest & UpdateOffreRequest** — validation avec règles métier
-- **Relation avec candidats** : l'index affiche le count de candidats (withCount)
-- **Scoping par utilisateur** : un agent RH ne voit que ses propres offres
+- New `Offre` Eloquent model with migration (`offres` table)
+- `User` hasMany `Offre` / `Offre` belongsTo `User` relationships
+- `StoreOffreRequest` and `UpdateOffreRequest` Form Requests with validation
+- 7 authenticated Blade CRUD routes (index, create, store, show, edit, update, destroy)
+- Ownership scoping: users only see/manage their own offers; 404 returned for unauthorized access
+- Required skills stored as JSON array via Eloquent cast
+- Offer list displays analyzed candidates count (placeholder 0 until analyse-ia)
+- Pest feature tests for all CRUD operations, validation, and ownership rules
 
 ## Capabilities
 
 ### New Capabilities
-- `offres-crud`: Gestion complète des offres d'emploi (CRUD) pour agents RH authentifiés
+- `offres-crud`: Full job offer management for authenticated RH agents — create, list, view, edit, delete offers with title, description, required skills (JSON array), and minimum experience level. Offers are scoped to their owner and include a candidate count.
 
 ### Modified Capabilities
-
-<!-- No existing capabilities are modified -->
+None.
 
 ## Impact
 
-- **Nouveau modèle Eloquent** : `Offre` avec migration, factory, seeder
-- **Nouveau controller** : `OffreController` (thin, utilise un FormRequest)
-- **Nouvelles routes** API REST dans `routes/web.php` (auth requise)
-- **Nouveaux FormRequests** : `StoreOffreRequest`, `UpdateOffreRequest`
-- **Tests** : Feature tests pour chaque endpoint
-- Aucun impact sur les specs existantes
+- **Models**: New `Offre` model; `User` model updated with `offres()` relationship
+- **Database**: New `offres` migration with foreign key to `users`
+- **Routes**: 7 new routes under `auth` middleware in `routes/web.php`
+- **Controllers**: New `OffreController` with full CRUD
+- **Views**: New Blade views under `resources/views/offres/`
+- **Tests**: New Pest feature test file `tests/Feature/OffreTest.php`
+- No existing code is modified beyond the User model and navigation
