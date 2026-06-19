@@ -2,24 +2,24 @@
 
 namespace Database\Seeders;
 
+use App\Models\Offre;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
-class DatabaseSeeder extends Seeder
+class OffreSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        User::factory()->create([
+        $user = User::first() ?? User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
 
-        $this->call(OffreSeeder::class);
+        Offre::factory()->count(5)->create([
+            'user_id' => $user->id,
+        ]);
     }
 }

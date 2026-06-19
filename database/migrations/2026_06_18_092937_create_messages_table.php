@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('messages', function (Blueprint $table) {
             $table->id();
             $table->foreignId('analyse_id')->constrained()->cascadeOnDelete();
-            $table->string('role'); 
+            $table->string('role');
             $table->text('contenu');
             $table->timestamps();
         });

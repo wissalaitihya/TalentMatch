@@ -1,0 +1,235 @@
+schema: spec-driven
+
+# =========================
+# PROJECT CONTEXT (VERY IMPORTANT)
+# This is what the AI agent reads BEFORE generating any feature
+# =========================
+
+context: |
+  Project Name: TalentMatch
+  Stack: Laravel 13+, PHP 8.3, MySQL, Redis (queues), Laravel Breeze (Blade), Laravel AI SDK v0.8.1, Laravel Boost, Pest, OpenSpec (spec-driven)
+
+  Description:
+  TalentMatch is an AI-powered recruitment system for automated candidate prescreening.
+  An RH agent creates job offers, submits CV text, and the AI returns a structured analysis
+  with extracted skills, experience, education, languages, matching score, strengths, gaps,
+  missing skills, recommendation, and justification.
+  A conversational assistant answers questions about candidates using real Laravel tools
+  and persistent conversation memory (laravel/ai SDK tables).
+
+  Core Architecture Principles:
+  - AI output must always follow a strict JSON schema (no free-text analysis stored)
+  - All AI-heavy operations MUST run in background queues (never in controllers)
+  - Conversation history must be persisted in database (RemembersConversations trait)
+  - All business logic must be separated into Services/Jobs
+  - Controllers must remain thin
+  - No hallucinated data allowed: AI must use tools for real database access
+  - Use Eloquent casts for arrays (competences_requises, points_forts, etc.) and enum (recommendation)
+
+  Data Model (conceptual):
+  - User (RH agent): id, name, email, password
+  - Offre: id, user_id, titre, description, competences_requises (JSON array), niveau_experience_min (int)
+  - Candidat: id, offre_id, nom, email, telephone, cv_text (longText)
+  - Analyse: id, candidat_id, statut (enum: pending/processing/completed/failed),
+    competences_extraites (JSON array), annees_experience (int), niveau_etudes (string),
+    langues (JSON array), matching_score (int 0-100), points_forts (JSON array),
+    lacunes (JSON array), competences_manquantes (JSON array),
+    recommandation (enum: convoquer/attente/rejeter), justification (text)
+  - ai_conversations, ai_messages (laravel/ai SDK tables for conversation memory)
+
+  Cardinalities:
+  - User 1--N Offre (an RH agent owns many offers)
+  - Offre 1--N Candidat (an offer receives many candidates)
+  - Candidat 1--1 Analyse (each candidate gets one analysis)
+
+  AI System Design:
+  - Layer 1: Structured CV Analysis (deterministic JSON output via HasStructuredOutput)
+  - Layer 2: Conversational Agent (tool-based via HasTools + memory via RemembersConversations)
+
+  AI Structured Output Schema (CV Analysis):
+  {
+    "competences_extraites": ["string"],
+    "annees_experience": "integer",
+    "niveau_etudes": "string",
+    "langues": ["string"],
+    "matching_score": "integer 0-100",
+    "points_forts": ["string"],
+    "lacunes": ["string"],
+    "competences_manquantes": ["string"],
+    "recommandation": "enum: convoquer | attente | rejeter",
+    "justification": "string"
+  }
+
+  Tools available to the assistant agent:
+  - getCandidateAnalysis(int $candidatId): returns Analyse for a candidate with all fields
+  - getJobRequirements(int $offreId): returns Offre titre, description, competences_requises, niveau_experience_min
+  - compareCandidates(int $id1, int $id2): returns both analyses side by side with a comparison summary
+
+  Data integrity rules:
+  - AI must NEVER invent scores, skills, experience, languages, or education — base everything on CV text
+  - If CV text is unclear, AI must mention uncertainty in justification
+  - All analysis must be persisted in analyses table
+  - Enum values must be respected: convoquer, attente, rejeter
+  - AI must NEVER answer database questions from model memory alone — must use tools
+  - Empty CV must be rejected before analysis job is dispatched
+  - Offer without required skills must be handled as an edge case
+  - Invalid AI responses must be caught and stored as failed status
+
+  Performance rules:
+  - Heavy AI operations must use Laravel Queues (database or Redis driver)
+  - Avoid N+1 queries (use eager loading: with(), load(), withCount())
+  - Use Redis for queue backend in production
+  - Use pagination where lists can grow
+
+  Testing conventions:
+  - All tests must be written with Pest (NOT PHPUnit)
+  - Use factories for model creation in tests
+  - Each feature test must cover: happy path, validation failures, authorization failures, edge cases
+  - Use fakes/mocks for AI calls instead of real API in tests
+  - Test analysis status flow (pending -> processing -> completed/failed)
+
+  Feature branch naming:
+  - feature/offres-crud
+  - feature/analyse-ia
+  - feature/agent-conversationnel
+
+# =========================
+# GLOBAL RULES FOR ALL FEATURES
+# =========================
+
+rules:
+  global:
+    - Always use Form Requests for validation
+    - Always use Eloquent relationships (no raw queries unless necessary)
+    - Always separate business logic into Services/Jobs/Actions
+    - Always use Jobs for AI processing
+    - Always validate AI output before saving to DB
+    - Always use typed BackedEnum for recommendation fields
+    - Never return AI raw output directly to UI without formatting
+    - Avoid N+1 queries at all cost
+    - Every feature must be covered by a spec before implementation
+    - Every spec must include: problem, user stories, scope, out of scope, data model impact, UI impact, validation rules, acceptance criteria, tests to add, edge cases, security/authorization rules, demo explanation notes
+    - Every spec must mention what is out of scope
+    - Every AI feature must explain what the AI must NOT invent
+    - Prefer real Laravel tools over assistant guesses
+    - Use Pest tests (NOT PHPUnit)
+    - Commit regularly with messages mentioning AI-assisted work (e.g., "[AI-assisted] Add ...")
+    - No business feature code before OpenSpec proposal + apply
+    - No business migrations before MCD/MLD validation
+    - Every implementation must match the accepted spec
+    - After implementation, run tests before commit
+
+# =========================
+# FEATURE-SPECIFIC RULES
+# =========================
+
+features:
+
+  auth:
+    rules:
+      - Use Laravel Breeze only
+      - Do not modify authentication core logic
+      - Keep authentication controllers untouched when possible
+      - Only authenticated RH agents can access the application
+
+  job_offers:
+    rules:
+      - Required skills must be stored as JSON array with Eloquent array cast
+      - Minimum experience must be integer
+      - Only authenticated users can create offers
+      - Offers are scoped to owner: user can only see/edit/delete their own offers
+      - Returns 404 (not 403) for unauthorized access to avoid leaking existence
+      - Use pagination for offer lists
+      - Use named routes for all offer operations
+      - Delete must cascade to related candidates
+
+  candidates:
+    rules:
+      - CV text must be stored as longText
+      - Candidate must belong to a job offer
+      - Deleting job offer must cascade delete candidates
+      - CV submission does not trigger analysis synchronously — dispatches a Job
+      - Each candidate is associated to exactly one offre
+      - Validate email and phone on submission
+      - Empty CV text must be rejected at validation level
+
+  ai_analysis:
+    rules:
+      - MUST use structured JSON output only (HasStructuredOutput with JsonSchema)
+      - MUST validate AI response against schema before saving to DB
+      - MUST run analysis inside a Queue Job
+      - MUST NOT block HTTP request — UI must remain responsive
+      - Matching score must be integer between 0 and 100
+      - Recommendation must be a backed enum: convoquer, attente, rejeter
+      - Arrays (competences_extraites, points_forts, lacunes, competences_manquantes, langues) must use Eloquent array cast
+      - Annees_experience must be integer, niveau_etudes must be string
+      - AI must NOT invent scores, skills, or experience levels — base everything on CV text
+      - AI must NOT fabricate candidate information not present in the CV
+      - If CV text is unclear, AI must mention uncertainty in justification
+      - Recommendation must be consistent with matching score and justification
+      - Invalid/malformed AI responses must be caught and stored with failed status
+      - Analysis is one-to-one with candidat
+      - Analysis status must track: pending -> processing -> completed | failed
+      - Failed analyses must be visible to the RH agent in the UI
+      - Jobs must be retry-safe where possible
+
+  conversation_agent:
+    rules:
+      - Must persist all messages in database using RemembersConversations trait
+      - Must use tool calling for any database-related question
+      - Must maintain conversation context across messages in same conversation
+      - Must NOT answer from model memory alone — always use tools for facts
+      - Agent instructions must explicitly forbid hallucinating database values
+      - Use HasTools interface with real Laravel tool classes (not prompt-based guessing)
+      - Conversation history is loaded from ai_messages table automatically
+      - Available tools: getCandidateAnalysis, getJobRequirements, compareCandidates
+      - If user asks about a candidate, assistant MUST use getCandidateAnalysis
+      - If user asks about an offer, assistant MUST use getJobRequirements
+      - If user asks to compare, assistant MUST use compareCandidates
+      - forUser() must be called to scope conversations to the current RH agent
+      - Use continue() to resume existing conversations
+
+# =========================
+# UI / DISPLAY STANDARDS
+# =========================
+
+ui:
+  dashboard:
+    - Show the authenticated RH agent's offers with candidate count
+    - Quick link to create new offer
+  offer_detail:
+    - Show offer criteria (title, description, skills, experience)
+    - List candidates ordered by matching_score descending
+    - Show analysis status for each candidate
+  candidate_detail:
+    - Show full analysis: score, recommendation, strengths, gaps, missing skills, justification
+    - "Display recommendation with visible labels: score >= 70 → 'À convoquer' (green), score 40-69 → 'En attente' (orange), score < 40 → 'À rejeter' (red)"
+    - Show analysis status clearly (pending/processing/completed/failed)
+  nav:
+    - App name: "TalentMatch"
+    - Links: Mes offres, Nouvelle offre
+
+# =========================
+# SECURITY STANDARDS
+# =========================
+
+security:
+  - Authenticated RH agents only (Breeze middleware)
+  - Users must only access their own offers and related candidates/analyses
+  - Validate all user input via Form Requests
+  - Do not expose raw AI prompts or API keys in responses
+  - Do not store secrets in code (use .env)
+  - Keep .env out of Git
+  - Sanitize/escape CV text safely in Blade ({{ }})
+
+# =========================
+# DEMO / EXPLANATION STANDARDS
+# =========================
+
+demo:
+  - Explain why OpenSpec before code: ensures alignment, avoids rework, documents decisions
+  - Explain why queue instead of sync: prevents HTTP timeout, retry on failure, non-blocking UX
+  - Explain why structured output: enables type-safe DB storage, consistent UI rendering, reliable enum mapping
+  - Explain why tools instead of guessing: prevents hallucination, real DB queries, verifiable results
+  - Explain why memory: enables follow-up questions, maintains context across conversation
+  - Note what was AI-generated (code, tests) and what was manually reviewed (architecture, security)
