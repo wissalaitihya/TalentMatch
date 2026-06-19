@@ -35,6 +35,7 @@ class OffreController extends Controller
             abort(404);
         }
         $offre->loadCount('candidats');
+        $offre->load(['analyses.candidat' => fn ($q) => $q->orderBy('created_at', 'desc')]);
 
         return view('offres.show', ['offre' => $offre]);
     }

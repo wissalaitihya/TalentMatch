@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\hasMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Offre extends Model
 {
@@ -29,8 +29,13 @@ class Offre extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function candidats(): hasMany
+    public function candidats(): HasMany
     {
         return $this->hasMany(Candidat::class);
+    }
+
+    public function analyses(): HasMany
+    {
+        return $this->hasMany(Analyse::class);
     }
 }

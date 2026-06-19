@@ -13,7 +13,9 @@ class Analyse extends Model
     use HasFactory;
 
     protected $fillable = [
+        'offre_id',
         'candidat_id',
+        'statut_analyse',
         'competences_extraites',
         'annees_experience',
         'niveau_etudes',
@@ -24,6 +26,7 @@ class Analyse extends Model
         'competences_manquantes',
         'recommandation',
         'justification',
+        'message_erreur',
     ];
 
     protected $casts = [
@@ -36,6 +39,11 @@ class Analyse extends Model
         'competences_manquantes' => 'array',
         'recommandation' => Recommandation::class,
     ];
+
+    public function offre(): BelongsTo
+    {
+        return $this->belongsTo(Offre::class);
+    }
 
     public function candidat(): BelongsTo
     {

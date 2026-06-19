@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CandidatController;
 use App\Http\Controllers\OffreController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +25,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/offres/{offre}/edit', [OffreController::class, 'edit'])->name('offres.edit');
     Route::put('/offres/{offre}', [OffreController::class, 'update'])->name('offres.update');
     Route::delete('/offres/{offre}', [OffreController::class, 'destroy'])->name('offres.destroy');
+
+    Route::post('/offres/{offre}/candidats', [CandidatController::class, 'store'])->name('offres.candidats.store');
 });
 
 require __DIR__.'/auth.php';
