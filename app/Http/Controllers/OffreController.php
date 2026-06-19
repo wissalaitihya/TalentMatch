@@ -35,7 +35,11 @@ class OffreController extends Controller
             abort(404);
         }
         $offre->loadCount('candidats');
-        $offre->load(['analyses.candidat' => fn ($q) => $q->orderBy('created_at', 'desc')]);
+        $offre->load(['analyses' => function ($q) {
+            $q->orderByRaw("CASE WHEN statut_analyse = 'completed' AND matching_score IS NOT NULL THEN 0 ELSE 1 END")
+                ->orderBy('matching_score', 'desc')
+                ->orderBy('created_at', 'desc');
+        }, 'analyses.candidat']);
 
         return view('offres.show', ['offre' => $offre]);
     }

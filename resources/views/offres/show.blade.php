@@ -89,7 +89,14 @@
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
-                    <h3 class="text-lg font-semibold mb-4">{{ __('Candidats soumis') }}</h3>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold">{{ __('Candidats soumis') }}</h3>
+                        @if ($offre->analyses->where('statut_analyse', 'completed')->count() >= 2)
+                            <a href="{{ route('offres.comparaison', $offre) }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                                {{ __('Comparer des candidats') }}
+                            </a>
+                        @endif
+                    </div>
                     @if ($offre->analyses->isEmpty())
                         <p class="text-gray-500">{{ __('Aucun candidat soumis pour cette offre.') }}</p>
                     @else
@@ -101,6 +108,7 @@
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Statut') }}</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Score') }}</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Recommandation') }}</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Justification') }}</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Date') }}</th>
                                     </tr>
                                 </thead>
@@ -158,6 +166,9 @@
                                                 @else
                                                     <span class="text-gray-400">-</span>
                                                 @endif
+                                            </td>
+                                            <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                                                {{ $analyse->justification ? Str::limit($analyse->justification, 80) : '-' }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 {{ $analyse->created_at->format('d/m/Y') }}

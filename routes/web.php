@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AnalyseController;
 use App\Http\Controllers\CandidatController;
+use App\Http\Controllers\ComparisonController;
 use App\Http\Controllers\OffreController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -28,6 +29,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/offres/{offre}', [OffreController::class, 'destroy'])->name('offres.destroy');
 
     Route::post('/offres/{offre}/candidats', [CandidatController::class, 'store'])->name('offres.candidats.store');
+
+    Route::get('/offres/{offre}/comparaison', [ComparisonController::class, 'index'])->name('offres.comparaison');
+    Route::post('/offres/{offre}/comparaison', [ComparisonController::class, 'compare'])->name('offres.comparaison.compare');
 
     Route::get('/analyses/{analyse}', [AnalyseController::class, 'show'])->name('analyses.show');
     Route::post('/analyses/{analyse}/chat', [AnalyseController::class, 'chat'])->name('analyses.chat');
