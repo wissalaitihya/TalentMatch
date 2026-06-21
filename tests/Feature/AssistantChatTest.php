@@ -309,6 +309,117 @@ class AssistantChatTest extends TestCase
         $this->assertStringContainsString('75%', $result);
     }
 
+    public function test_get_candidate_analysis_handles_null_optional_fields(): void
+    {
+        $user = User::factory()->create();
+        $offre = Offre::factory()->create(['user_id' => $user->id]);
+        $candidat = Candidat::factory()->create(['offre_id' => $offre->id, 'nom_candidat' => 'Jean Dupont']);
+        Analyse::factory()->create([
+            'offre_id' => $offre->id,
+            'candidat_id' => $candidat->id,
+            'statut_analyse' => 'completed',
+            'matching_score' => null,
+            'competences_extraites' => null,
+            'annees_experience' => null,
+            'niveau_etudes' => null,
+            'langues' => null,
+            'points_forts' => null,
+            'lacunes' => null,
+            'competences_manquantes' => null,
+            'recommandation' => null,
+            'justification' => null,
+        ]);
+
+        $tool = new GetCandidateAnalysis($user);
+        $result = $tool->handle(new Request(['candidat_id' => $candidat->id]));
+
+        $this->assertStringContainsString('Jean Dupont', $result);
+        $this->assertStringContainsString('Non disponible', $result);
+        $this->assertStringNotContainsString('{', $result);
+    }
+
+    public function test_get_job_requirements_handles_empty_competences(): void
+    {
+        $user = User::factory()->create();
+        $offre = Offre::factory()->create([
+            'user_id' => $user->id,
+            'titre' => 'Stagiaire',
+            'competences_requises' => [],
+        ]);
+
+        $tool = new GetJobRequirements($user);
+        $result = $tool->handle(new Request(['offre_id' => $offre->id]));
+
+        $this->assertStringContainsString('Stagiaire', $result);
+        $this->assertStringContainsString('Aucune compétence requise spécifiée', $result);
+    }
+
+    public function test_compare_candidates_refuses_different_offres(): void
+    {
+        $user = User::factory()->create();
+        $offre1 = Offre::factory()->create(['user_id' => $user->id]);
+        $offre2 = Offre::factory()->create(['user_id' => $user->id]);
+
+        $candidat1 = Candidat::factory()->create(['offre_id' => $offre1->id]);
+        $candidat2 = Candidat::factory()->create(['offre_id' => $offre2->id]);
+
+        Analyse::factory()->create(['offre_id' => $offre1->id, 'candidat_id' => $candidat1->id]);
+        Analyse::factory()->create(['offre_id' => $offre2->id, 'candidat_id' => $candidat2->id]);
+
+        $tool = new CompareCandidates($user);
+        $result = $tool->handle(new Request([
+            'candidat_id_1' => $candidat1->id,
+            'candidat_id_2' => $candidat2->id,
+        ]));
+
+        $this->assertStringContainsString('Comparaison', $result);
+        $this->assertStringContainsString('Candidat 1', $result);
+        $this->assertStringContainsString('Candidat 2', $result);
+    }
+
+    public function test_compare_candidates_refuses_when_one_is_from_other_user(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        $offreUser = Offre::factory()->create(['user_id' => $user->id]);
+        $offreOther = Offre::factory()->create(['user_id' => $otherUser->id]);
+
+        $candidat1 = Candidat::factory()->create(['offre_id' => $offreUser->id]);
+        $candidat2 = Candidat::factory()->create(['offre_id' => $offreOther->id]);
+
+        Analyse::factory()->create(['offre_id' => $offreUser->id, 'candidat_id' => $candidat1->id]);
+        Analyse::factory()->create(['offre_id' => $offreOther->id, 'candidat_id' => $candidat2->id]);
+
+        $tool = new CompareCandidates($user);
+        $result = $tool->handle(new Request([
+            'candidat_id_1' => $candidat1->id,
+            'candidat_id_2' => $candidat2->id,
+        ]));
+
+        $this->assertStringContainsString('impossible', strtolower($result));
+    }
+
+    public function test_chat_endpoint_returns_json_response_key_even_when_empty(): void
+    {
+        $user = User::factory()->create();
+        $offre = Offre::factory()->create(['user_id' => $user->id]);
+        $candidat = Candidat::factory()->create(['offre_id' => $offre->id]);
+        $analyse = Analyse::factory()->create([
+            'offre_id' => $offre->id,
+            'candidat_id' => $candidat->id,
+        ]);
+
+        AssistantAgent::fake(['']);
+
+        $response = $this->actingAs($user)->post("/analyses/{$analyse->id}/chat", [
+            'message' => 'Bonjour',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonStructure(['response', 'conversation_id']);
+    }
+
     public function test_analyse_show_page_shows_chat_component(): void
     {
         $user = User::factory()->create();

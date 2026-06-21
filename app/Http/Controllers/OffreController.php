@@ -36,6 +36,9 @@ class OffreController extends Controller
         }
         $offre->loadCount('candidats');
         $offre->load(['analyses.candidat' => fn ($q) => $q->orderBy('created_at', 'desc')]);
+        $offre->setRelation('analyses', $offre->analyses->sortByDesc(function ($a) {
+            return $a->matching_score ?? -1;
+        })->values());
 
         return view('offres.show', ['offre' => $offre]);
     }
