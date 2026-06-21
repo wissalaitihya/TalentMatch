@@ -214,6 +214,7 @@ class AssistantChatTest extends TestCase
         Analyse::factory()->create([
             'offre_id' => $offre->id,
             'candidat_id' => $candidat1->id,
+            'statut_analyse' => 'completed',
             'matching_score' => 90,
             'points_forts' => ['PHP expert'],
             'lacunes' => ['Pas de React'],
@@ -222,6 +223,7 @@ class AssistantChatTest extends TestCase
         Analyse::factory()->create([
             'offre_id' => $offre->id,
             'candidat_id' => $candidat2->id,
+            'statut_analyse' => 'completed',
             'matching_score' => 70,
             'points_forts' => ['React expert'],
             'lacunes' => ['Pas de PHP'],
