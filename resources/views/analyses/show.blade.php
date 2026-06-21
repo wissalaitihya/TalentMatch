@@ -154,6 +154,13 @@
                         <dd class="mt-1 text-gray-900">{{ $analyse->justification }}</dd>
                     </div>
                     @endif
+
+                    @if ($analyse->message_erreur)
+                    <div class="mt-4">
+                        <dt class="font-medium text-gray-500">{{ __('Message d\'erreur') }}</dt>
+                        <dd class="mt-1 text-red-600">{{ $analyse->message_erreur }}</dd>
+                    </div>
+                    @endif
                 </div>
             </div>
 

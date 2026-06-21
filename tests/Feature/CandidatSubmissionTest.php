@@ -54,6 +54,18 @@ class CandidatSubmissionTest extends TestCase
         Queue::assertPushed(AnalyzeCandidateJob::class);
     }
 
+    public function test_submission_requires_valid_offre(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/offres/999/candidats', [
+            'nom_candidat' => 'Jean Dupont',
+            'cv_texte' => 'Experienced developer with 5 years in Laravel and PHP.',
+        ]);
+
+        $response->assertNotFound();
+    }
+
     public function test_user_cannot_submit_cv_to_another_users_offer(): void
     {
         $user = User::factory()->create();
