@@ -54,8 +54,8 @@
                         <div>
                             <dt class="font-medium text-gray-500">{{ __('Statut') }}</dt>
                             <dd class="mt-1">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $statusColors[$analyse->statut_analyse] ?? 'bg-gray-100 text-gray-800' }}">
-                                    {{ $statusLabels[$analyse->statut_analyse] ?? $analyse->statut_analyse }}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $statusColors[$analyse->statut_analyse->value] ?? 'bg-gray-100 text-gray-800' }}">
+                                    {{ $statusLabels[$analyse->statut_analyse->value] ?? $analyse->statut_analyse->value }}
                                 </span>
                             </dd>
                         </div>

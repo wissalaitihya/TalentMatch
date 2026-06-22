@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Ai\Agents\CVAnalyzer;
 use App\Enums\Recommandation;
+use App\Enums\StatutAnalyse;
 use App\Models\Analyse;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -14,6 +15,10 @@ class AnalyzeCandidateJob implements ShouldQueue
 {
     use Queueable;
 
+    public int $tries = 2;
+
+    public int $timeout = 120;
+
     public function __construct(
         public int $analyseId
     ) {}
@@ -23,21 +28,25 @@ class AnalyzeCandidateJob implements ShouldQueue
         $analyse = Analyse::with(['candidat', 'offre'])->find($this->analyseId);
 
         if (! $analyse || ! $analyse->candidat || ! $analyse->offre) {
-            Log::warning('AnalyzeCandidateJob: Analyse, candidat, or offre not found', ['id' => $this->analyseId]);
+            Log::warning('AnalyzeCandidateJob: Analyse, candidat, or offre not found', [
+                'id' => $this->analyseId,
+            ]);
 
             return;
         }
 
-        $analyse->update(['statut_analyse' => 'processing']);
+        // Skip if already processed
+        if ($analyse->statut_analyse === StatutAnalyse::Completed) {
+            return;
+        }
+
+        $analyse->update(['statut_analyse' => StatutAnalyse::Processing]);
 
         $cvTexte = $analyse->candidat->cv_texte;
-        $titreOffre = $analyse->offre->titre;
-        $descriptionOffre = $analyse->offre->description;
-        $competencesRequises = $analyse->offre->competences_requises ?? [];
 
         if (empty(trim($cvTexte))) {
             $analyse->update([
-                'statut_analyse' => 'failed',
+                'statut_analyse' => StatutAnalyse::Failed,
                 'message_erreur' => 'Le CV est vide.',
             ]);
 
@@ -47,37 +56,42 @@ class AnalyzeCandidateJob implements ShouldQueue
         try {
             $agent = new CVAnalyzer(
                 cvTexte: $cvTexte,
-                titreOffre: $titreOffre,
-                descriptionOffre: $descriptionOffre,
-                competencesRequises: $competencesRequises,
+                titreOffre: $analyse->offre->titre,
+                descriptionOffre: $analyse->offre->description,
+                competencesRequises: $analyse->offre->competences_requises ?? [],
             );
 
-            $result = $agent->prompt($cvTexte);
+            $response = $agent->prompt($cvTexte);
 
-            $matchingScore = (int) ($result['matching_score'] ?? 0);
-            $matchingScore = max(0, min(100, $matchingScore));
+            $data = $response->structured;
 
-            $recommandationValue = $result['recommandation'] ?? null;
-            $recommandation = match ($recommandationValue) {
-                'convoquer' => Recommandation::Convoquer,
-                'attente' => Recommandation::Attente,
-                'rejeter' => Recommandation::Rejeter,
-                default => null,
-            };
+            // Validate score
+            $score = (int) ($data['matching_score'] ?? 0);
+            $score = max(0, min(100, $score));
+
+            // Validate recommendation
+            $recommandation = Recommandation::tryFrom($data['recommandation'] ?? '');
+            if (! $recommandation) {
+                throw new \RuntimeException(
+                    'Invalid recommandation: '.json_encode($data['recommandation'] ?? null)
+                );
+            }
 
             $analyse->update([
-                'statut_analyse' => 'completed',
-                'competences_extraites' => $result['competences_extraites'] ?? [],
-                'annees_experience' => (int) ($result['annees_experience'] ?? 0),
-                'niveau_etudes' => $result['niveau_etudes'] ?? '',
-                'langues' => $result['langues'] ?? [],
-                'matching_score' => $matchingScore,
-                'points_forts' => $result['points_forts'] ?? [],
-                'lacunes' => $result['lacunes'] ?? [],
-                'competences_manquantes' => $result['competences_manquantes'] ?? [],
+                'statut_analyse' => StatutAnalyse::Completed,
+                'competences_extraites' => $data['competences_extraites'] ?? [],
+                'annees_experience' => (int) ($data['annees_experience'] ?? 0),
+                'niveau_etudes' => $data['niveau_etudes'] ?? '',
+                'langues' => $data['langues'] ?? [],
+                'matching_score' => $score,
+                'points_forts' => $data['points_forts'] ?? [],
+                'lacunes' => $data['lacunes'] ?? [],
+                'competences_manquantes' => $data['competences_manquantes'] ?? [],
                 'recommandation' => $recommandation,
-                'justification' => $result['justification'] ?? '',
+                'justification' => $data['justification'] ?? '',
+                'message_erreur' => null,
             ]);
+
         } catch (Throwable $e) {
             Log::error('AnalyzeCandidateJob failed', [
                 'id' => $this->analyseId,
@@ -85,7 +99,7 @@ class AnalyzeCandidateJob implements ShouldQueue
             ]);
 
             $analyse->update([
-                'statut_analyse' => 'failed',
+                'statut_analyse' => StatutAnalyse::Failed,
                 'message_erreur' => $e->getMessage(),
             ]);
         }
@@ -96,7 +110,7 @@ class AnalyzeCandidateJob implements ShouldQueue
         $analyse = Analyse::find($this->analyseId);
         if ($analyse) {
             $analyse->update([
-                'statut_analyse' => 'failed',
+                'statut_analyse' => StatutAnalyse::Failed,
                 'message_erreur' => $e->getMessage(),
             ]);
         }

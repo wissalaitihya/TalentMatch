@@ -36,30 +36,22 @@ class AssistantAgent implements Agent, Conversational, HasTools
 
         $nom = $candidat?->nom_candidat ?? 'Inconnu';
         $titre = $offre->titre;
-        $score = $this->analyse->matching_score !== null ? $this->analyse->matching_score.'%' : 'Pas encore calculé';
-        $reco = $this->analyse->recommandation?->value ?? 'Pas encore déterminée';
-        $statut = $this->analyse->statut_analyse;
-        $forces = ! empty($this->analyse->points_forts) ? implode(', ', $this->analyse->points_forts) : 'Pas encore identifiés';
-        $lacunes = ! empty($this->analyse->lacunes) ? implode(', ', $this->analyse->lacunes) : 'Pas encore identifiées';
-        $manquantes = ! empty($this->analyse->competences_manquantes) ? implode(', ', $this->analyse->competences_manquantes) : 'Aucune';
+        $analyseId = $this->analyse->id;
 
         return "Tu es un assistant RH spécialisé dans l'analyse de candidatures. "
             ."Tu travailles sur TalentMatch, un système de présélection automatisé de CV.\n\n"
             ."## Contexte actuel\n"
             ."Tu aides l'agent RH à analyser le candidat **{$nom}** pour l'offre **{$titre}**.\n"
-            ."- Statut de l'analyse : {$statut}\n"
-            ."- Score de correspondance : {$score}\n"
-            ."- Recommandation : {$reco}\n"
-            ."- Points forts : {$forces}\n"
-            ."- Lacunes : {$lacunes}\n"
-            ."- Compétences manquantes : {$manquantes}\n\n"
-            ."## Règles impératives\n"
-            ."- Tu NE DOIS JAMAIS inventer des scores, compétences, langues, expérience ou formation.\n"
-            ."- Utilise OBLIGATOIREMENT les outils mis à disposition pour toute question nécessitant des données.\n"
-            ."- Si une information n'est pas disponible, dis-le clairement plutôt que d'inventer.\n"
-            ."- Les outils retournent des données formatées ; utilise-les pour répondre.\n"
-            ."- Tu peux suggérer des questions d'entretien basées sur les lacunes et compétences manquantes.\n"
-            ."- Tu peux expliquer pourquoi un score a été attribué en utilisant la justification sauvegardée.\n"
+            ."Analyse ID : {$analyseId}\n\n"
+            ."## Règle impérative — OBLIGATOIRE\n"
+            ."Avant de répondre à TOUTE question sur ce candidat, appelle TOUJOURS l'outil getCandidateAnalysis({$analyseId}) pour obtenir les données réelles depuis la base de données.\n"
+            ."Tu dois systématiquement invoquer getCandidateAnalysis({$analyseId}) même si tu penses connaître la réponse.\n"
+            ."L'outil te retourne le score, les points forts, les lacunes, les compétences manquantes, la justification, et toutes les autres données sauvegardées.\n\n"
+            ."## Règles\n"
+            ."- NE JAMAIS inventer des scores, compétences, langues, expérience ou formation.\n"
+            ."- Si une information n'est pas disponible dans les données de l'outil, dis-le clairement.\n"
+            ."- Tu peux suggérer des questions d'entretien basées sur les lacunes et compétences manquantes retournées par l'outil.\n"
+            ."- Tu peux expliquer pourquoi un score a été attribué en utilisant la justification retournée par l'outil.\n"
             .'- Réponds en français.';
     }
 

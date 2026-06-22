@@ -91,7 +91,7 @@
                 <div class="p-6 text-gray-900">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-semibold">{{ __('Candidats soumis') }}</h3>
-                        @if ($offre->analyses->where('statut_analyse', 'completed')->count() >= 2)
+                        @if ($offre->analyses->where('statut_analyse', \App\Enums\StatutAnalyse::Completed)->count() >= 2)
                             <a href="{{ route('offres.comparaison', $offre) }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
                                 {{ __('Comparer des candidats') }}
                             </a>
@@ -134,8 +134,8 @@
                                                         'completed' => 'Terminé',
                                                         'failed' => 'Échec',
                                                     ];
-                                                    $color = $statusColors[$analyse->statut_analyse] ?? 'bg-gray-100 text-gray-800';
-                                                    $label = $statusLabels[$analyse->statut_analyse] ?? $analyse->statut_analyse;
+                                                   $color = $statusColors[$analyse->statut_analyse->value] ?? 'bg-gray-100 text-gray-800';
+                                                   $label = $statusLabels[$analyse->statut_analyse->value] ?? $analyse->statut_analyse->value;
                                                 @endphp
                                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $color }}">
                                                     {{ $label }}

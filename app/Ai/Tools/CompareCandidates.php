@@ -2,6 +2,7 @@
 
 namespace App\Ai\Tools;
 
+use App\Enums\StatutAnalyse;
 use App\Models\Analyse;
 use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -38,7 +39,7 @@ class CompareCandidates implements Tool
             return 'Comparaison impossible : les candidats doivent appartenir à la même offre.';
         }
 
-        if ($analyse1->statut_analyse !== 'completed' || $analyse2->statut_analyse !== 'completed') {
+        if ($analyse1->statut_analyse !== StatutAnalyse::Completed || $analyse2->statut_analyse !== StatutAnalyse::Completed) {
             return 'Comparaison impossible : les deux analyses doivent être terminées.';
         }
 
@@ -62,8 +63,8 @@ class CompareCandidates implements Tool
                 ."- Compétences manquantes : {$manquantes}";
         };
 
-        $score1 = $analyse1->matching_score ?? 0;
-        $score2 = $analyse2->matching_score ?? 0;
+        $score1 = (int) ($analyse1->matching_score ?? 0);
+        $score2 = (int) ($analyse2->matching_score ?? 0);
         $diff = abs($score1 - $score2);
 
         $comparison = "## Analyse du Candidat 1\n\n{$formatAnalyse($analyse1)}\n\n"

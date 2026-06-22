@@ -51,11 +51,11 @@ class ComparisonRequest extends FormRequest
                 $analyse1 = Analyse::where('candidat_id', $id1)->first();
                 $analyse2 = Analyse::where('candidat_id', $id2)->first();
 
-                if (! $analyse1 || $analyse1->statut_analyse !== 'completed') {
+                if (! $analyse1 || $analyse1->statut_analyse?->value !== 'completed') {
                     $validator->errors()->add('candidat_id_1', 'L\'analyse de ce candidat n\'est pas encore terminée.');
                 }
 
-                if (! $analyse2 || $analyse2->statut_analyse !== 'completed') {
+                if (! $analyse2 || $analyse2->statut_analyse?->value !== 'completed') {
                     $validator->errors()->add('candidat_id_2', 'L\'analyse de ce candidat n\'est pas encore terminée.');
                 }
             },
