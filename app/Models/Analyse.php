@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Recommandation;
+use App\Enums\StatutAnalyse;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -29,14 +30,15 @@ class Analyse extends Model
     ];
 
     protected $casts = [
+        'statut_analyse' => StatutAnalyse::class,      // ← App\Enums\StatutAnalyse
+        'recommandation' => Recommandation::class,     // ← App\Enums\Recommandation
         'competences_extraites' => 'array',
-        'annees_experience' => 'integer',
         'langues' => 'array',
-        'matching_score' => 'integer',
         'points_forts' => 'array',
         'lacunes' => 'array',
         'competences_manquantes' => 'array',
-        'recommandation' => Recommandation::class,
+        'annees_experience' => 'integer',
+        'matching_score' => 'integer',
     ];
 
     public function offre(): BelongsTo

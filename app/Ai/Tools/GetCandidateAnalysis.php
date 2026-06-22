@@ -15,19 +15,19 @@ class GetCandidateAnalysis implements Tool
 
     public function description(): Stringable|string
     {
-        return 'Retrieve the full structured analysis for a candidate, including name, offer title, score, recommendation, strengths, gaps, missing skills, extracted skills, languages, education, experience, and justification.';
+        return 'Retrieve the full structured analysis for a candidate by analyse ID, including name, offer title, score, recommendation, strengths, gaps, missing skills, extracted skills, languages, education, experience, and justification.';
     }
 
     public function handle(Request $request): Stringable|string
     {
-        $candidatId = (int) $request['candidat_id'];
+        $analyseId = (int) $request['analyse_id'];
 
         $analyse = Analyse::with(['candidat', 'offre'])
-            ->where('candidat_id', $candidatId)
+            ->where('id', $analyseId)
             ->first();
 
         if (! $analyse) {
-            return 'Aucune analyse trouvée pour ce candidat.';
+            return 'Aucune analyse trouvée pour cette analyse.';
         }
 
         if ($analyse->offre->user_id !== $this->user->id) {
@@ -38,7 +38,7 @@ class GetCandidateAnalysis implements Tool
         $titreOffre = $analyse->offre->titre;
         $score = $analyse->matching_score !== null ? $analyse->matching_score.'%' : 'Non disponible';
         $recommandation = $analyse->recommandation?->value ?? 'Non disponible';
-        $statut = $analyse->statut_analyse;
+        $statut = $analyse->statut_analyse?->value ?? 'Non disponible';
         $experience = $analyse->annees_experience !== null ? $analyse->annees_experience.' ans' : 'Non disponible';
         $etudes = $analyse->niveau_etudes ?? 'Non disponible';
         $competencesExtraites = ! empty($analyse->competences_extraites) ? implode(', ', $analyse->competences_extraites) : 'Non disponible';
@@ -66,7 +66,7 @@ class GetCandidateAnalysis implements Tool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'candidat_id' => $schema->integer()->required()->description('The ID of the candidate to retrieve the analysis for'),
+            'analyse_id' => $schema->integer()->required()->description('The ID of the analysis to retrieve'),
         ];
     }
 }

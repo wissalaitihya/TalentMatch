@@ -10,14 +10,14 @@ class AssistantOrchestrator
 {
     public function ask(Analyse $analyse, User $user, string $message): array
     {
-        $agent = new AssistantAgent($user, $analyse);
-
         $analyse->load(['candidat', 'offre']);
+
+        $agent = new AssistantAgent($user, $analyse);
 
         $analyseId = session('assistant_conversation_'.$analyse->id);
 
         if ($analyseId) {
-            $response = $agent->continue($analyseId, as: $user)->prompt($message);
+            $response = $agent->continue($analyseId, $user)->prompt($message);
         } else {
             $response = $agent->forUser($user)->prompt($message);
             session()->put('assistant_conversation_'.$analyse->id, $response->conversationId);

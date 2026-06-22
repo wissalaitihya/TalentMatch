@@ -1,10 +1,4 @@
-# CV Analysis Queue
-
-## Purpose
-
-Définir le comportement du job d'analyse de CV exécuté en arrière-plan (file d'attente), incluant les transitions de statut, l'appel à l'agent IA structuré, et la gestion d'erreur.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: AnalyzeCandidateJob processes analysis in the background
 The system SHALL have an `AnalyzeCandidateJob` that processes a candidate's analysis in the background queue. The job SHALL call the real `CVAnalyzer` agent with structured output. The job SHALL safely handle AI failures, empty CVs, and missing required skills.

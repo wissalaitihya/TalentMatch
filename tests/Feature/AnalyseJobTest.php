@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Ai\Agents\CVAnalyzer;
 use App\Enums\Recommandation;
+use App\Enums\StatutAnalyse;
 use App\Jobs\AnalyzeCandidateJob;
 use App\Models\Analyse;
 use App\Models\Candidat;
@@ -62,11 +63,11 @@ class AnalyseJobTest extends TestCase
             'statut_analyse' => 'pending',
         ]);
 
-        $this->assertEquals('pending', $analyse->fresh()->statut_analyse);
+        $this->assertEquals(StatutAnalyse::Pending, $analyse->fresh()->statut_analyse);
 
         (new AnalyzeCandidateJob($analyse->id))->handle();
 
-        $this->assertEquals('completed', $analyse->fresh()->statut_analyse);
+        $this->assertEquals(StatutAnalyse::Completed, $analyse->fresh()->statut_analyse);
     }
 
     public function test_job_handles_missing_analyse_gracefully(): void
@@ -113,7 +114,7 @@ class AnalyseJobTest extends TestCase
 
         $analyse->refresh();
 
-        $this->assertEquals('completed', $analyse->statut_analyse);
+        $this->assertEquals(StatutAnalyse::Completed, $analyse->statut_analyse);
         $this->assertIsArray($analyse->competences_extraites);
         $this->assertIsArray($analyse->langues);
         $this->assertIsArray($analyse->points_forts);
@@ -159,7 +160,7 @@ class AnalyseJobTest extends TestCase
         $this->assertEquals(0, $analyse->matching_score);
     }
 
-    public function test_invalid_recommandation_causes_null(): void
+    public function test_invalid_recommandation_causes_failed(): void
     {
         $user = User::factory()->create();
         $offre = Offre::factory()->create([
@@ -192,8 +193,8 @@ class AnalyseJobTest extends TestCase
         (new AnalyzeCandidateJob($analyse->id))->handle();
 
         $analyse->refresh();
-        $this->assertEquals('completed', $analyse->statut_analyse);
-        $this->assertNull($analyse->recommandation);
+        $this->assertEquals(StatutAnalyse::Failed, $analyse->statut_analyse);
+        $this->assertNotNull($analyse->message_erreur);
     }
 
     public function test_malformed_response_causes_failed_status(): void
@@ -220,7 +221,7 @@ class AnalyseJobTest extends TestCase
         (new AnalyzeCandidateJob($analyse->id))->handle();
 
         $analyse->refresh();
-        $this->assertEquals('failed', $analyse->statut_analyse);
+        $this->assertEquals(StatutAnalyse::Failed, $analyse->statut_analyse);
         $this->assertNotNull($analyse->message_erreur);
     }
 
@@ -248,7 +249,7 @@ class AnalyseJobTest extends TestCase
         (new AnalyzeCandidateJob($analyse->id))->handle();
 
         $analyse->refresh();
-        $this->assertEquals('failed', $analyse->statut_analyse);
+        $this->assertEquals(StatutAnalyse::Failed, $analyse->statut_analyse);
         $this->assertNotNull($analyse->message_erreur);
     }
 
@@ -325,11 +326,9 @@ class AnalyseJobTest extends TestCase
         (new AnalyzeCandidateJob($analyse->id))->handle();
 
         $analyse->refresh();
-        $this->assertEquals('completed', $analyse->statut_analyse);
-        if ($analyse->recommandation !== null) {
-            $this->assertInstanceOf(Recommandation::class, $analyse->recommandation);
-            $this->assertContains($analyse->recommandation->value, ['convoquer', 'attente', 'rejeter']);
-        }
+        $this->assertEquals(StatutAnalyse::Completed, $analyse->statut_analyse);
+        $this->assertInstanceOf(Recommandation::class, $analyse->recommandation);
+        $this->assertContains($analyse->recommandation->value, ['convoquer', 'attente', 'rejeter']);
     }
 
     public function test_no_real_external_api_call_is_made(): void
@@ -365,7 +364,7 @@ class AnalyseJobTest extends TestCase
         (new AnalyzeCandidateJob($analyse->id))->handle();
 
         $analyse->refresh();
-        $this->assertEquals('completed', $analyse->statut_analyse);
+        $this->assertEquals(StatutAnalyse::Completed, $analyse->statut_analyse);
         CVAnalyzer::assertPrompted('Développeur PHP avec 5 ans d\'expérience.');
     }
 
@@ -403,7 +402,7 @@ class AnalyseJobTest extends TestCase
         (new AnalyzeCandidateJob($analyse->id))->handle();
 
         $analyse->refresh();
-        $this->assertEquals('completed', $analyse->statut_analyse);
+        $this->assertEquals(StatutAnalyse::Completed, $analyse->statut_analyse);
     }
 
     public function test_job_handles_empty_cv(): void
@@ -426,7 +425,7 @@ class AnalyseJobTest extends TestCase
         (new AnalyzeCandidateJob($analyse->id))->handle();
 
         $analyse->refresh();
-        $this->assertEquals('failed', $analyse->statut_analyse);
+        $this->assertEquals(StatutAnalyse::Failed, $analyse->statut_analyse);
         $this->assertStringContainsString('vide', $analyse->message_erreur);
     }
 }

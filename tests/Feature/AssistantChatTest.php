@@ -140,7 +140,7 @@ class AssistantChatTest extends TestCase
         ]);
 
         $tool = new GetCandidateAnalysis($user);
-        $request = new Request(['candidat_id' => $candidat->id]);
+        $request = new Request(['analyse_id' => $analyse->id]);
         $result = $tool->handle($request);
 
         $this->assertStringContainsString('Jean Dupont', $result);
@@ -157,13 +157,13 @@ class AssistantChatTest extends TestCase
         $otherUser = User::factory()->create();
         $offre = Offre::factory()->create(['user_id' => $otherUser->id]);
         $candidat = Candidat::factory()->create(['offre_id' => $offre->id]);
-        Analyse::factory()->create([
+        $analyse = Analyse::factory()->create([
             'offre_id' => $offre->id,
             'candidat_id' => $candidat->id,
         ]);
 
         $tool = new GetCandidateAnalysis($user);
-        $request = new Request(['candidat_id' => $candidat->id]);
+        $request = new Request(['analyse_id' => $analyse->id]);
         $result = $tool->handle($request);
 
         $this->assertStringContainsString('Impossible de récupérer', $result);
@@ -275,7 +275,7 @@ class AssistantChatTest extends TestCase
         $user = User::factory()->create();
 
         $tool = new GetCandidateAnalysis($user);
-        $request = new Request(['candidat_id' => 999]);
+        $request = new Request(['analyse_id' => 999]);
         $result = $tool->handle($request);
 
         $this->assertStringContainsString('Aucune analyse', $result);
@@ -297,14 +297,14 @@ class AssistantChatTest extends TestCase
         $user = User::factory()->create();
         $offre = Offre::factory()->create(['user_id' => $user->id]);
         $candidat = Candidat::factory()->create(['offre_id' => $offre->id]);
-        Analyse::factory()->create([
+        $analyse = Analyse::factory()->create([
             'offre_id' => $offre->id,
             'candidat_id' => $candidat->id,
             'matching_score' => 75,
         ]);
 
         $tool = new GetCandidateAnalysis($user);
-        $result = $tool->handle(new Request(['candidat_id' => $candidat->id]));
+        $result = $tool->handle(new Request(['analyse_id' => $analyse->id]));
 
         $this->assertStringNotContainsString('{', $result);
         $this->assertStringNotContainsString('[', $result);
@@ -316,7 +316,7 @@ class AssistantChatTest extends TestCase
         $user = User::factory()->create();
         $offre = Offre::factory()->create(['user_id' => $user->id]);
         $candidat = Candidat::factory()->create(['offre_id' => $offre->id, 'nom_candidat' => 'Jean Dupont']);
-        Analyse::factory()->create([
+        $analyse = Analyse::factory()->create([
             'offre_id' => $offre->id,
             'candidat_id' => $candidat->id,
             'statut_analyse' => 'completed',
@@ -333,7 +333,7 @@ class AssistantChatTest extends TestCase
         ]);
 
         $tool = new GetCandidateAnalysis($user);
-        $result = $tool->handle(new Request(['candidat_id' => $candidat->id]));
+        $result = $tool->handle(new Request(['analyse_id' => $analyse->id]));
 
         $this->assertStringContainsString('Jean Dupont', $result);
         $this->assertStringContainsString('Non disponible', $result);
